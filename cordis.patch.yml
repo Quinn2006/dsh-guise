@@ -1,0 +1,6 @@
+# dsh-guise bundle patch: inserts the host plugin row into the
+# profile roster. Applied as a profile bundle layer (the `dsh.bundle.patch`
+# manifest field). A pure insert row — hot-mountable without a restart.
+- insert:
+    - id: guise
+      name: 'dsh-guise'
