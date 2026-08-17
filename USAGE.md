@@ -63,6 +63,11 @@
 - 首行 `off` = 关闭没电模式（退回内置话术池）
 - 文件被删/为空 = 使用内置话术池
 
+## 二点五、话术主题包与历史版本
+
+- 话术主题：~/.dsh/.persona/tired-theme.txt，值 default / cat / daze / silly（面板可切换，4 套风格）
+- 历史版本：~/.dsh/.persona/history.json，每次保存自动留档旧内容（最多 100 条），面板可一键恢复
+
 ## 三、配置文件（cordis 行 config）
 
 ```yaml
