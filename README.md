@@ -18,6 +18,7 @@
 | 💰 **余额预警** | 可调阈值的余额监测（默认 1 元），低于阈值时新对话不再请求 API |
 | 🔋 **没电模式** | 额度耗尽 / 上下文超限时，以「懒散·天然呆·爱 Tokens」的口吻替 agent 说随机俏皮话再结束对话 |
 | 🎭 **话术主题包** | 没电模式 4 套风格可切换：混合慵懒 / 慵懒猫系 / 天然呆 / 沙雕 |
+| 📊 **用量统计** | 按工作区 / 按对话统计消耗的余额与 tokens：对话框上方实时显示本对话消耗，工作区列表标注每个工作区的总消耗（面板可开关、可清零） |
 | 🕘 **历史版本** | 每次编辑人设自动留档（最多 100 条），一键回滚任意历史版本 |
 
 ---
@@ -45,6 +46,8 @@ dsh plugin --profile web add github:Quinn2006/dsh-guise
 | 预警阈值 | `~/.dsh/.persona/balance-min.txt` | 余额低于该金额（元）触发没电模式 |
 | 话术主题 | `~/.dsh/.persona/tired-theme.txt` | 没电模式主题：`default` / `cat` / `daze` / `silly` |
 | 没电话术 | `~/.dsh/.persona/tired-lines.txt` | 每行一条自定义话术（存在时优先于主题），首行 `off` 关闭 |
+| 用量统计 | `~/.dsh/.persona/usage.json` | 按工作区 / 会话的 token 消耗与估算费用（自动写入） |
+| 用量开关 | `~/.dsh/.persona/usage-enabled.txt` | 内容 `0` / `off` = 暂停用量统计（历史数据保留） |
 | 历史版本 | `~/.dsh/.persona/history.json` | 自动留档（最多 100 条），面板可恢复 |
 
 ### 文件内容规则（全局与局部通用）
@@ -56,6 +59,7 @@ dsh plugin --profile web add github:Quinn2006/dsh-guise
 
 ### GUI 面板（侧边栏「人设」）
 
+- **用量统计**：一键启停消耗统计 + 全部清零；工作区下拉里每个工作区标注 `名称(总余额/总tokens)`
 - **余额预警**：阈值输入 + 保存 + 实时余额显示（每分钟刷新）
 - **话术主题**：没电模式 4 套风格下拉切换，保存即生效
 - **总开关**：一键启停人设注入
@@ -63,6 +67,14 @@ dsh plugin --profile web add github:Quinn2006/dsh-guise
 - **工作区人设**：从 DSH 工作区列表下拉选择（或手动路径），每个工作区单独设置
 - **人设库**：新建（名称+内容）、编辑、删除、预览
 - **历史版本**：最近 15 条编辑记录，一键恢复任意版本
+
+### 用量统计（Usage Accounting）
+
+- **对话框上方横幅**：实时显示**本对话**消耗的余额与 tokens（每次模型响应后自动累计，15 秒轮询刷新）
+- **工作区总消耗**：面板的工作区下拉中，每个工作区标注该工作区**所有任务**的累计消耗，如 `插件(0.42/34,567)`
+- **统计口径**：宿主监听 `session/event`，每个带 usage 的模型响应按 `prompt_tokens × 输入单价 + completion_tokens × 输出单价` 估算金额（DeepSeek 官方默认 2 / 8 元每百万 tokens，`usage.prices` 可调）
+- **开关**：面板「用量统计」区块（余额预警上方）一键启停；关闭时停止统计，历史数据保留
+- **清零**：面板「清零统计」按钮重置全部工作区数据
 
 ---
 
@@ -129,6 +141,11 @@ dsh plugin --profile web add github:Quinn2006/dsh-guise
       balanceCheck: true     # 余额预检开关
       balanceMin: 1          # 预警阈值（元），面板修改优先
       codes: []              # 额外触发失败码，如 [RATE_LIMIT]
+    usage:
+      enabled: true          # 用量统计开关（面板开关优先）
+      prices:
+        input: 2             # 输入单价（元 / 百万 tokens）
+        output: 8            # 输出单价（元 / 百万 tokens）
 ```
 
 ---
@@ -150,6 +167,9 @@ dsh plugin --profile web add github:Quinn2006/dsh-guise
 | POST | `/api/dsh-persona/global/save` | `{text}` 保存全局人设 |
 | POST | `/api/dsh-persona/local/save` | `{cwd, text}` 保存工作区人设 |
 | POST | `/api/dsh-persona/switch` | `{enabled}` 总开关 |
+| GET | `/api/dsh-persona/usage` | 用量统计：开关状态 + 各工作区 / 会话的 tokens 与估算费用 |
+| POST | `/api/dsh-persona/usage/switch` | `{enabled}` 用量统计开关 |
+| POST | `/api/dsh-persona/usage/reset` | `{cwd?}` 清零用量（缺省全部，可指定工作区） |
 
 ---
 
@@ -158,12 +178,13 @@ dsh plugin --profile web add github:Quinn2006/dsh-guise
 ```
 dsh-guise/
 ├── lib/
-│   ├── index.js      # 宿主插件：人设段注入 + 通告 + 路由 + 没电模式 + 余额预检
+│   ├── index.js      # 宿主插件：人设段注入 + 通告 + 路由 + 没电模式 + 余额预检 + 用量统计
 │   ├── store.js      # 人设库 / 全局 / 局部 / 总开关 / 阈值 / 历史 / 主题 的文件存取
 │   ├── balance.js    # DeepSeek 余额查询（缓存 60s，失败放行）
 │   ├── tired.js      # 话术主题池（4 套 × 随机组合 + 自定义文件）
+│   ├── usage.js      # 用量统计：按工作区/会话记账 + 单价估算 + 持久化
 │   ├── home.js       # DSH 主目录解析
-│   └── client.js     # 浏览器面板（侧边栏「人设」入口 + 抽屉面板）
+│   └── client.js     # 浏览器面板（侧边栏「人设」入口 + 抽屉面板 + 对话框上方消耗横幅）
 ├── cordis.patch.yml  # bundle 补丁（纯 insert，可热挂载）
 ├── examples/
 │   ├── global.txt            # 人设示例（家猫萝莉）
