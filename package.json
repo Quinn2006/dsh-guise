@@ -1,7 +1,7 @@
-﻿{
+{
   "name": "dsh-guise",
-  "version": "1.5.2",
-  "description": "浜鸿琛ｆ┍锛坧ersona wardrobe锛夋彃浠讹細鍙繚瀛樺涓汉璁惧埌浜鸿搴擄紝骞剁粰鍏ㄥ眬锛堟墍鏈変細璇濓級鎴栨寜宸ヤ綔鍖哄眬閮ㄦ寚瀹氫娇鐢ㄥ摢涓汉璁撅紝娉ㄥ叆鍒扮郴缁熸彁绀鸿瘝鏈€鍓嶉潰锛堜汉鏍艰瀹氾紝鏈€楂樹紭鍏堢骇锛夈€傚叏灞€鏂囦欢 ~/.dsh/.persona/global.txt锛堝彲鐩存帴鍐欐枃鏈紝鎴?@preset:<id> 寮曠敤浜鸿搴擄級锛涗汉璁惧簱瀛樹簬 ~/.dsh/.persona/library/<id>.txt锛堥琛?# 鍚嶇О锛夛紱灞€閮ㄦ枃浠?<宸ヤ綔鍖?/.persona.txt锛堝瓨鍦ㄦ椂瑕嗙洊鍏ㄥ眬锛涢琛?off 鍏抽棴锛夈€備晶杈规爮銆屼汉璁俱€嶅叆鍙ｅ湪 GUI 涓鐞嗭紝宸ヤ綔鍖哄彲鐩存帴浠?DSH 宸ヤ綔鍖哄垪琛ㄩ€夋嫨銆傜儹鎻掓嫈鈥斺€旈€氳繃 dsh plugin add link: 鎸傝浇锛屾棤闇€鏀?DSH 婧愮爜銆?,
+  "version": "1.6.1",
+  "description": "人设衣橱（persona wardrobe）插件：可保存多个人设到人设库，并给全局（所有会话）或按工作区局部指定使用哪个人设，注入到系统提示词最前面（人格设定，最高优先级）。全局文件 ~/.dsh/.persona/global.txt（可直接写文本，或 @preset:<id> 引用人设库）；人设库存于 ~/.dsh/.persona/library/<id>.txt（首行 # 名称）；局部文件 <工作区>/.persona.txt（存在时覆盖全局；首行 off 关闭）。侧边栏「人设」入口在 GUI 中管理，工作区可直接从 DSH 工作区列表选择。热插拔——通过 dsh plugin add link: 挂载，无需改 DSH 源码。",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
